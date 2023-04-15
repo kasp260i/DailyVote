@@ -1,30 +1,31 @@
 <?php
-// Include the database connection file and start the session
+// Inkluderer databaseforbindelsesfilen og starter sessionen
 require_once "database.php";
 session_start();
 
-// Initialize variables
+// Initialiserer variabler
 $quote = "";
 $message = "";
 
-// Check if the form has been submitted
+// Checker om formularen er blevet sendt via POST-metoden
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Retrieve the quote from the form
+    // Henter citatet fra formularen
     $quote = $_POST["quote"];
     
-    // Sanitize the input data
+    // Sanitizes inputdataene for at undgå SQL-injektion
     $quote = mysqli_real_escape_string($mysqli, $quote);
     
-    // Check if the user is logged in
+    // Checker om brugeren er logget ind
     if (isset($_SESSION["user_id"])) {
         $user_id = $_SESSION["user_id"];
 
-        // Check if the user has already posted a quote
+        // Checker om brugeren allerede har indsendt et citat
         $sql_check = "SELECT quote FROM user WHERE id = ? AND quote IS NOT NULL";
         $stmt_check = $mysqli->stmt_init();
 
+        // Forbereder et SQL-statement og tjekker om det lykkes
         if (!$stmt_check->prepare($sql_check)) {
-            die("SQL error: " . $mysqli->error);
+            die("SQL-error: " . $mysqli->error);
         }
 
         $stmt_check->bind_param("i", $user_id);
@@ -32,33 +33,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt_check->store_result();
 
         if ($stmt_check->num_rows > 0) {
-            // User has already posted a quote, display error message
-            $message = "You have already posted a quote today.";
+            // Brugeren har allerede indsendt et citat, vis en fejlbesked
+            $message = "You have already posted a quote today";
         } else {
-            // User has not posted a quote, add new quote
+            // Brugeren har ikke indsendt et citat, så vi tilføjer et nyt citat
             $sql_add = "UPDATE user SET quote = ?, upvotes = 0 WHERE id = ? AND quote IS NULL";
             $stmt_add = $mysqli->stmt_init();
 
+            // Forbereder et SQL-statement og tjekker om det lykkes
             if (!$stmt_add->prepare($sql_add)) {
-                die("SQL error: " . $mysqli->error);
+                die("SQL-error: " . $mysqli->error);
             }
 
             $stmt_add->bind_param("si", $quote, $user_id);
 
-        // Execute the prepared statement
+        // Eksekverer det forberedte statement
         if (!$stmt_add->execute()) {
             die("Execution failed: " . $stmt_add->error);
         }
 
-        // Close the statement
+        // Lukker statementet
         $stmt_add->close();
 
-        // Set success message
-        $message = "Quote added successfully.";
+        // Sætter en success-besked
+        $message = "Quote posted succesfully";
           } 
           
     } else {
-    // User is not logged in, display error message
+    // Brugeren er ikke logget ind, vis en fejlbesked
     $message = "You need to be logged in to post a quote.";
     }
 }
